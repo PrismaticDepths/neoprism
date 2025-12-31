@@ -1,6 +1,7 @@
 # NeoPrisma / nprisma
 
-NeoPrisma is a fast, clean, and reliable successor to Prism's Autoclicker 4.0.
+NeoPrisma is a fast, clean, and reliable autoclicker & macro for MacOS.\
+It is the successor to Prism's Autoclicker 4.0.
 
 | | nprisma | prism's autoclicker |
 | - | - | - |
