@@ -44,7 +44,6 @@ def captured_mouse_scroll(x,y,dx,dy):
 	t=time.perf_counter_ns()-start
 	log_event(t,Events.MOUSE_SCROLL,x,y,dx,dy)
 
-
 kb_listener = pynput.keyboard.Listener(on_press=captured_key_press,on_release=captured_key_release)
 mouse_listener = pynput.mouse.Listener(on_move=captured_mouse_move,on_click=captured_mouse_click,on_scroll=captured_mouse_scroll)
 
