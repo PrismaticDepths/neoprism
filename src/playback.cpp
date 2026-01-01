@@ -4,6 +4,9 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <optional>
+#include <thread>
+#include <chrono>
 #include <ApplicationServices/ApplicationServices.h>
 #include "playback.h"
 namespace py = pybind11;
@@ -23,6 +26,13 @@ void keyStatus(uint16_t vk_code, bool status) {
 	CFRelease(keyStroke);
 }
 
+void moveMouseAbsolute(uint16_t x, uint16_t y) {
+	CGPoint destination = CGPointMake(x, y);
+	CGEventRef motion = CGEventCreateMouseEvent(NULL,kCGEventMouseMoved,destination,kCGMouseButtonLeft);
+	CGEventPost(kCGHIDEventTap, motion);
+	CFRelease(motion);
+}
+
 std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
 	uint8_t version = 0;
 	if (e_bytearray.size() < 5 || std::memcmp(e_bytearray.data(),FILE_HEADER_ID,4) != 0) {
@@ -37,13 +47,13 @@ std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
 	}
 }
 
-std::vector<EventPacket> CompileEventArray(std::vector<uint8_t>& e_bytearray) {
+std::pair<std::vector<EventPacket>, str> CompileEventArray(std::vector<uint8_t>& e_bytearray) {
 	std::pair<bool, uint8_t> headerInfo = ensureValidHeaders(e_bytearray);
+	std::vector<EventPacket> eventList;
 	if (!headerInfo.first) {
 		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << std::endl;
-		return ; 
+		return {eventList,"Failed to parse event array: Bad file header or incompatible version."}; 
 	}
-	std::vector<EventPacket> eventList;
 	for (size_t cur = 5; cur < e_bytearray.size();) {
 		EventPacket e;
 		std::memcpy(&e.timestamp, e_bytearray.data()+cur, sizeof_uint64_t);
@@ -112,6 +122,22 @@ std::vector<EventPacket> CompileEventArray(std::vector<uint8_t>& e_bytearray) {
 				break;
 		}
 		eventList.push_back(EventPacket);
+	}
+	return {eventList,""};
+}
+
+void PlayEventList(std::vector<EventPacket> eventList) {
+	auto start = std::chrono::high_resolution_clock::now();
+	uint64_t lastTimestamp = 0;
+	for (EventPacket e : eventList) {
+		uint64_t deltaNs = e.timestamp - lastTimestamp;
+		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
+		lastTimestamp = e.timestamp;
+		std::this_thread::sleep_for(std::chrono::nanoseconds(deltaNs)-std::chrono::nanoseconds(200));
+		while (std::chrono::high_resolution_clock::now() < insertTime) {
+			// intentionally do nothing
+		}
+		
 	}
 	
 }
