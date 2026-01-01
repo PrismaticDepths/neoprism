@@ -5,5 +5,15 @@
 struct EventPacket {
 	uint64_t timestamp;
 	uint8_t event;
-	std::vector<uint8_t> payload;
+	std::vector<int> payload;
+};
+
+struct Events {
+	static constexpr uint8_t KEY_DOWN = 10;
+	static constexpr uint8_t KEY_UP = 11;
+	static constexpr uint8_t MOUSE_DOWN = 20;
+	static constexpr uint8_t MOUSE_UP = 21;
+	static constexpr uint8_t MOUSE_MOVE_ABSOLUTE = 22;
+	static constexpr uint8_t MOUSE_MOVE_RELATIVE = 23;
+	static constexpr uint8_t MOUSE_SCROLL = 24;
 };
