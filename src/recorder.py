@@ -1,7 +1,7 @@
 import pynput, time, struct
 MAJOR_FMT_VERSION = 1 # ONLY CHANGE WHEN YOU MAKE BREAKING CHANGES THAT WOULD CRASH AN OLDER VERSION OF THE PLAYBACK ENGINE. ALSO CHANGE THE NUMBER IN THE PLAYBACK SECTION TOO LOL
 # MAJOR_FMT_VERSION MUST BE UNDER 256 (or 255 maybe i forgot) OR THE C++ PLAYBACK CODE MIGHT BREAK
-FILE_HEADER_ID = b'NRPM' # DO NOT CHANGE THIS
+FILE_HEADER_ID = b'NPRM' # DO NOT CHANGE THIS
 
 class Events: # DO NOT MODIFY EXISTING ENUMS SINCE THAT WOULD DEFINITELY BREAK OLD RECORDINGS, ALSO PROBABLY BUMP MAJOR_FMT_VERSION WHEN DOING THIS
 	# !! Duplicated in playback.h
@@ -19,18 +19,18 @@ class Events: # DO NOT MODIFY EXISTING ENUMS SINCE THAT WOULD DEFINITELY BREAK O
 FILE_HEADER_FMT = "<4sB" #char[4],UINT8 should be set to NPRM
 EVENT_HEADER_FMT = "<QB" #UINT64,UINT8, PROBABLY DONT CHANGE THIS ONE EITHER BY THE WAY
 PAYLOAD_FMTS = { # !! hardcoded + duplicated in playback.cpp
-Events.KEY_DOWN:"<H", #UINT16
-Events.KEY_UP:"<H", #UINT16
-Events.MOUSE_DOWN:"<BHH", #UINT8,UINT16,UINT16
-Events.MOUSE_UP:"<BHH", #UINT8,UINT16,UINT16
-Events.MOUSE_MOVE_ABSOLUTE:"<HH", #UINT16,UINT16
-Events.MOUSE_MOVE_RELATIVE:"<hh", #INT16,INT16
-Events.MOUSE_SCROLL:"<HHhh", #UINT16,UINT16,INT16,INT16
+Events.KEY_DOWN:"H", #UINT16
+Events.KEY_UP:"H", #UINT16
+Events.MOUSE_DOWN:"BHH", #UINT8,UINT16,UINT16
+Events.MOUSE_UP:"BHH", #UINT8,UINT16,UINT16
+Events.MOUSE_MOVE_ABSOLUTE:"HH", #UINT16,UINT16
+Events.MOUSE_MOVE_RELATIVE:"hh", #INT16,INT16
+Events.MOUSE_SCROLL:"HHhh", #UINT16,UINT16,INT16,INT16
 }
 
-# toggle recording is ctrl f9
+# toggle recording is ctrl f7
 # so we want to avoid it
-# toggle playing recordings is ctrl f7 also avoid that
+# toggle playing recordings is ctrl f9 also avoid that
 # ctrl f8 is fine since that will toggle the autoclicker
 
 
@@ -49,10 +49,12 @@ class OneShotRecorder:
 
 	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
+		print(t)
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
+		print(vk)
 		if 59 in self.keysdown and vk in [101,41]: return
 		self.keysdown.append(vk)
-		self.log_event(t,vk)
+		self.log_event(t,Events.KEY_DOWN,vk)
 
 	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
@@ -60,19 +62,19 @@ class OneShotRecorder:
 		if 59 in self.keysdown and vk in [101,41]: return
 		try: self.keysdown.remove(vk)
 		except Exception: pass
-		self.log_event(t,Events.KEY_UP,key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk)
+		self.log_event(t,Events.KEY_UP,vk)
 
 	def captured_mouse_click(self,x,y,button:pynput.mouse.Button,pressed):
 		t=time.perf_counter_ns()-self.starting_time
-		self.log_event(t,Events.MOUSE_DOWN if pressed else Events.MOUSE_UP,button.value,x,y)
+		self.log_event(t,Events.MOUSE_DOWN if pressed else Events.MOUSE_UP,button.value,int(x),int(y))
 
 	def captured_mouse_move(self,x,y):
 		t=time.perf_counter_ns()-self.starting_time
-		self.log_event(t,Events.MOUSE_MOVE_ABSOLUTE,x,y)
+		self.log_event(t,Events.MOUSE_MOVE_ABSOLUTE,int(x),int(y))
 
 	def captured_mouse_scroll(self,x,y,dx,dy):
 		t=time.perf_counter_ns()-self.starting_time
-		self.log_event(t,Events.MOUSE_SCROLL,x,y,dx,dy)
+		self.log_event(t,Events.MOUSE_SCROLL,int(x),int(y),int(dx),int(dy))
 
 	def start(self):
 		assert self.starting_time == 0
@@ -83,3 +85,13 @@ class OneShotRecorder:
 	def stop(self):
 		self.kb_listener.stop()
 		self.mouse_listener.stop()
+
+v = OneShotRecorder()
+v.start()
+time.sleep(3)
+v.stop()
+with open("output.nprsma","wb") as f:
+	f.write(v.buffer)
+
+import playback
+playback.CompileAndPlay(v.buffer)

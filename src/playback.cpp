@@ -221,7 +221,13 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 	
 }
 
+void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
+	auto l = CompileEventArray(e_bytearray);
+	PlayEventList(l.first);
+}
+
 PYBIND11_MODULE(playback, m) {
     m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
 	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
+	m.def("CompileAndPlay", &CompileAndPlay, "i mean it just kind like plays the thingy with less intervention needed if you know what i mean");
 }
