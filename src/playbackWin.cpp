@@ -8,8 +8,9 @@
 #include <optional>
 #include <thread>
 #include <chrono>
-#include <ApplicationServices/ApplicationServices.h>
+// #include <ApplicationServices/ApplicationServices.h> this is macos only. making this for windows!
 #include "playback.h"
+#include <windows.h>
 namespace py = pybind11;
 
 constexpr uint8_t MAJOR_FMT_VERSION = 1; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
@@ -22,20 +23,90 @@ constexpr size_t sizeof_int16_t = sizeof(int16_t);
 constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
 
 void keyStatus(uint16_t vk_code, bool status) {
-	CGEventRef keyStroke = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)vk_code, status);
+	/* macos version.
+    
+    CGEventRef keyStroke = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)vk_code, status);
 	CGEventPost(kCGHIDEventTap, keyStroke);
 	CFRelease(keyStroke);
+
+    */
+    // windows version
+    INPUT inputs[1] = {};
+    ZeroMemory(inputs, sizeof(inputs));
+    inputs[0].type = INPUT_KEYBOARD;
+    inputs[0].ki.wVk = vk_code;
+    
+    if(!status) {
+        inputs[0].ki.dwFlags = KEYEVENTF_KEYUP;
+    }
+    else {
+        inputs[0].ki.dwFlags = 0;
+    }
+    
+    SendInput(ARRAYSIZE(inputs), inputs, sizeof(INPUT));
 }
 
 void moveMouseAbsolute(uint16_t x, uint16_t y) {
-	CGPoint destination = CGPointMake(x, y);
+	
+    /*macos version
+    CGPoint destination = CGPointMake(x, y);
 	CGEventRef motion = CGEventCreateMouseEvent(NULL,kCGEventMouseMoved,destination,kCGMouseButtonLeft);
 	CGEventPost(kCGHIDEventTap, motion);
 	CFRelease(motion);
+    */
+    // windows version
+    INPUT input;
+    ZeroMemory(&input, sizeof(INPUT));
+    input.type = INPUT_MOUSE;
+
+    input.mi.dx = (x*65535)/ GetSystemMetrics(0); // size of length of primary monitor
+    input.mi.dy = (y*65535)/ GetSystemMetrics(1); // size of width of primary monitor
+
+    input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+
+    SendInput(1, &input, sizeof(INPUT));
+
+
+
 }
 
 void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
-	CGPoint destination = CGPointMake(x, y);
+	
+    INPUT input;
+    ZeroMemory(&input, sizeof(INPUT));
+    input.type = INPUT_MOUSE;
+
+	input.mi.dx = (x*65535)/ GetSystemMetrics(0); // size of length of primary monitor
+	input.mi.dy = (y*65535)/ GetSystemMetrics(1); // size of width of primary monitor
+	input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+    switch (button) {
+		case 1:
+			if (status)
+				input.mi.dwFlags |= MOUSEEVENTF_LEFTDOWN;
+			else
+				input.mi.dwFlags |= MOUSEEVENTF_LEFTUP;
+			break;
+		case 2:
+			if (status)
+				input.mi.dwFlags |= MOUSEEVENTF_RIGHTDOWN;
+			else
+				input.mi.dwFlags |= MOUSEEVENTF_RIGHTUP;
+			break;
+		case 3:
+			if (status)
+				input.mi.dwFlags |= MOUSEEVENTF_MIDDLEDOWN
+			else
+				input.mi.dwFlags |= MOUSEEVENTF_MIDDLEUP;
+			break;
+		default:
+			// Windows does not support arbitrary mouse buttons
+			break;
+		
+	}
+
+    // below is macos version.
+    /*
+    CGPoint destination = CGPointMake(x, y);
 	CGEventType statusEvent;
 	CGMouseButton mouseButton;
 
@@ -80,18 +151,7 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	}
 	CGEventPost(kCGHIDEventTap,click);
 	CFRelease(click);  
-
-}
-
-void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
-
-	CGPoint location = CGPointMake(x,y);
-	CGEventRef motion = CGEventCreateScrollWheelEvent(NULL, kCGScrollEventUnitPixel,2,dx,dy);
-	CGEventSetLocation(motion,location);
-	CGEventPost(kCGHIDEventTap,motion);
-	CFRelease(motion);
-
-
+    */
 }
 
 std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
@@ -192,36 +252,14 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
 		lastTimestamp = e.timestamp;
 		std::this_thread::sleep_for(std::chrono::nanoseconds(deltaNs)-std::chrono::nanoseconds(200));
-		std::function<void()> func;
-		switch (e.event) {
-			case Events::KEY_DOWN:
-				func = [e]() -> void { keyStatus(e.payload.front(),true); };
-				break;
-			case Events::KEY_UP:
-				func = [e]() -> void { keyStatus(e.payload.front(),false); };
-				break;
-			case Events::MOUSE_MOVE_ABSOLUTE:
-				func = [e]() -> void { moveMouseAbsolute(e.payload.at(0),e.payload.at(1)); };
-				break;
-			case Events::MOUSE_DOWN:
-				func = [e]() -> void { mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),true); };
-				break;
-			case Events::MOUSE_UP:
-				func = [e]() -> void { mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),false); };
-				break;
-			case Events::MOUSE_SCROLL:
-				func = [e]() -> void { mouseScroll(e.payload.at(0),e.payload.at(1),e.payload.at(2),e.payload.at(3)); };
-				break;
-		}
 		while (std::chrono::high_resolution_clock::now() < insertTime) {
 			// intentionally do nothing
 		}
-		func();
+		
 	}
 	
 }
 
 PYBIND11_MODULE(playback, m) {
     m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
-	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
 }

@@ -28,8 +28,16 @@ Events.MOUSE_MOVE_RELATIVE:"<hh", #INT16,INT16
 Events.MOUSE_SCROLL:"<HHhh", #UINT16,UINT16,INT16,INT16
 }
 
+# toggle recording is ctrl f9
+# so we want to avoid it
+# toggle playing recordings is ctrl f7 also avoid that
+# ctrl f8 is fine since that will toggle the autoclicker
+
+
 class OneShotRecorder:
 	def __init__(self):
+
+		self.keysdown = []
 		self.starting_time = 0
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION)) # Add the file header
@@ -41,10 +49,17 @@ class OneShotRecorder:
 
 	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
-		self.log_event(t,Events.KEY_DOWN,key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk)
+		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
+		if 59 in self.keysdown and vk in [101,41]: return
+		self.keysdown.append(vk)
+		self.log_event(t,vk)
 
 	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
+		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
+		if 59 in self.keysdown and vk in [101,41]: return
+		try: self.keysdown.remove(vk)
+		except Exception: pass
 		self.log_event(t,Events.KEY_UP,key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk)
 
 	def captured_mouse_click(self,x,y,button:pynput.mouse.Button,pressed):
