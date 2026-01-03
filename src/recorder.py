@@ -90,8 +90,11 @@ v = OneShotRecorder()
 v.start()
 time.sleep(3)
 v.stop()
+print("going to start moving!")
 with open("output.nprsma","wb") as f:
 	f.write(v.buffer)
 
 import playback
+print("sucess?")
+playback.setDPIAwareness()
 playback.CompileAndPlay(v.buffer)
