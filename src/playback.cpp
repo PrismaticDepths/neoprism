@@ -34,10 +34,39 @@ void moveMouseAbsolute(uint16_t x, uint16_t y) {
 	CFRelease(motion);
 }
 
+void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
+	CGPoint destination = CGPointMake(x, y);
+	CGMouseButton mouseButton;
+	CGEventType dragType;
+		switch (button) {
+		case 1:
+			mouseButton = kCGMouseButtonLeft;
+			dragType = kCGEventLeftMouseDragged;
+			break;
+		case 3:
+			mouseButton = kCGMouseButtonRight;
+			dragType = kCGEventRightMouseDragged;
+			break;
+		case 2:
+			mouseButton = kCGMouseButtonCenter;
+			dragType = kCGEventOtherMouseDragged;
+			break;
+		default:
+			mouseButton = (CGMouseButton)(button-1);
+			dragType = kCGEventOtherMouseDragged;
+			break;
+	}
+	CGEventRef motion = CGEventCreateMouseEvent(NULL,dragType,destination,mouseButton);
+	CGEventPost(kCGHIDEventTap, motion);
+	CFRelease(motion);
+}
+
 void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	CGPoint destination = CGPointMake(x, y);
 	CGEventType statusEvent;
 	CGMouseButton mouseButton;
+
+	std::cout << button << std::endl;
 
 	switch (button) {
 		case 1:
@@ -48,7 +77,7 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 			}
 			mouseButton = kCGMouseButtonLeft;
 			break;
-		case 2:
+		case 3:
 			if (status) {
 				statusEvent = kCGEventRightMouseDown;
 			} else {
@@ -56,7 +85,7 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 			}
 			mouseButton = kCGMouseButtonRight;
 			break;
-		case 3:
+		case 2:
 			if (status) {
 				statusEvent = kCGEventOtherMouseDown;
 			} else {
@@ -70,12 +99,12 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 			} else {
 				statusEvent = kCGEventOtherMouseUp;
 			}
-			mouseButton = (CGMouseButton)button;
+			mouseButton = (CGMouseButton)(button-1);
 			break;
 	}
 
 	CGEventRef click = CGEventCreateMouseEvent(NULL,statusEvent,destination,mouseButton);
-	if (button > 2) {
+	if (button > 3 || button == 2) {
 		CGEventSetIntegerValueField(click, kCGMouseEventButtonNumber, button);
 	}
 	CGEventPost(kCGHIDEventTap,click);
@@ -123,6 +152,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 		cur += sizeof_uint8_t;
 		uint16_t x;
 		uint16_t y;
+		uint8_t button;
 		switch (e.event) {
 			case Events::KEY_DOWN:
 			case Events::KEY_UP:
@@ -134,7 +164,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 
 			case Events::MOUSE_DOWN:
 			case Events::MOUSE_UP:
-				uint8_t button;
+
 				std::memcpy(&button, e_bytearray.data()+cur, sizeof_uint8_t);
 				cur += sizeof_uint8_t;
 				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
@@ -176,6 +206,19 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				e.payload.push_back(static_cast<int>(dy));
 				break;
 
+			case Events::MOUSE_DRAG:
+
+				std::memcpy(&button, e_bytearray.data()+cur, sizeof_uint8_t);
+				cur += sizeof_uint8_t;
+				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
+				cur += sizeof_uint16_t;
+				std::memcpy(&y, e_bytearray.data()+cur, sizeof_uint16_t);
+				cur += sizeof_uint16_t;
+				e.payload.push_back(static_cast<int>(button));
+				e.payload.push_back(static_cast<int>(x));
+				e.payload.push_back(static_cast<int>(y));
+				break;
+
 			default:
 				break;
 		}
@@ -212,6 +255,8 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 			case Events::MOUSE_SCROLL:
 				func = [e]() -> void { mouseScroll(e.payload.at(0),e.payload.at(1),e.payload.at(2),e.payload.at(3)); };
 				break;
+			case Events::MOUSE_DRAG:
+				func = [e]() -> void { mouseDragAbsolute(e.payload.at(0),e.payload.at(1),e.payload.at(2)); };
 		}
 		while (std::chrono::high_resolution_clock::now() < insertTime) {
 			// intentionally do nothing

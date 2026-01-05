@@ -16,4 +16,5 @@ struct Events {
 	static constexpr uint8_t MOUSE_MOVE_ABSOLUTE = 22;
 	static constexpr uint8_t MOUSE_MOVE_RELATIVE = 23;
 	static constexpr uint8_t MOUSE_SCROLL = 24;
+	static constexpr uint8_t MOUSE_DRAG = 25;
 };

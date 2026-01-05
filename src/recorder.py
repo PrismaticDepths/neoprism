@@ -12,6 +12,7 @@ class Events: # DO NOT MODIFY EXISTING ENUMS SINCE THAT WOULD DEFINITELY BREAK O
 	MOUSE_MOVE_ABSOLUTE = 22
 	MOUSE_MOVE_RELATIVE = 23
 	MOUSE_SCROLL = 24
+	MOUSE_DRAG = 25
 
 #USES LITTLE ENDIAN IF YOU CANT ALREADY TELL
 #HEADER: EVENT TIMESTAMP, EVENT TYPE
@@ -26,6 +27,7 @@ Events.MOUSE_UP:"BHH", #UINT8,UINT16,UINT16
 Events.MOUSE_MOVE_ABSOLUTE:"HH", #UINT16,UINT16
 Events.MOUSE_MOVE_RELATIVE:"hh", #INT16,INT16
 Events.MOUSE_SCROLL:"HHhh", #UINT16,UINT16,INT16,INT16
+Events.MOUSE_DRAG:"BHH", #UINT8,UINT16,UINT16
 }
 
 # toggle recording is ctrl f7
@@ -38,6 +40,7 @@ class OneShotRecorder:
 	def __init__(self):
 
 		self.keysdown = []
+		self.clicks = []
 		self.starting_time = 0
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION)) # Add the file header
@@ -64,13 +67,21 @@ class OneShotRecorder:
 		except Exception: pass
 		self.log_event(t,Events.KEY_UP,vk)
 
-	def captured_mouse_click(self,x,y,button:pynput.mouse.Button,pressed):
+	def captured_mouse_click(self,x,y,button,pressed):
 		t=time.perf_counter_ns()-self.starting_time
-		self.log_event(t,Events.MOUSE_DOWN if pressed else Events.MOUSE_UP,button.value,int(x),int(y))
+		b = list(pynput.mouse.Button).index(button)
+		self.log_event(t,Events.MOUSE_DOWN if pressed else Events.MOUSE_UP,b,int(x),int(y))
+		if pressed: self.clicks.append(b) 
+		else:
+			try: self.clicks.remove(b)
+			except Exception: pass
 
 	def captured_mouse_move(self,x,y):
 		t=time.perf_counter_ns()-self.starting_time
-		self.log_event(t,Events.MOUSE_MOVE_ABSOLUTE,int(x),int(y))
+		if len(self.clicks)!=0:
+			self.log_event(t,Events.MOUSE_DRAG,self.clicks[-1],int(x),int(y))
+		else:
+			self.log_event(t,Events.MOUSE_MOVE_ABSOLUTE,int(x),int(y))
 
 	def captured_mouse_scroll(self,x,y,dx,dy):
 		t=time.perf_counter_ns()-self.starting_time
