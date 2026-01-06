@@ -39,7 +39,7 @@ Events.MOUSE_DRAG:"BHH", #UINT8,UINT16,UINT16
 class OneShotRecorder:
 	def __init__(self):
 
-		self.keysdown = []
+		self.keysdown = set()
 		self.clicks = []
 		self.starting_time = 0
 		self.buffer = bytearray()
@@ -52,18 +52,16 @@ class OneShotRecorder:
 
 	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
-		print(t)
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
-		print(vk)
 		if 59 in self.keysdown and vk in [101,41]: return
-		self.keysdown.append(vk)
+		self.keysdown.add(vk)
 		self.log_event(t,Events.KEY_DOWN,vk)
 
 	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		if 59 in self.keysdown and vk in [101,41]: return
-		try: self.keysdown.remove(vk)
+		try: self.keysdown.discard(vk)
 		except Exception: pass
 		self.log_event(t,Events.KEY_UP,vk)
 
