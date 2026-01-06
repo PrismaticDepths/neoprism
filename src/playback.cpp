@@ -15,7 +15,8 @@ namespace py = pybind11;
 
 constexpr uint8_t MAJOR_FMT_VERSION = 1; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
 constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 1; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
-constexpr char FILE_HEADER_ID[4] = {'N','P','R','M'}; // DONT CHANGE THIS ONE
+constexpr char FILE_HEADER_ID[11] = {'<','N','E','O','P','R','I','S','M','A','>'}; // DONT CHANGE THIS ONE
+constexpr uint8_t FILE_HEADER_ID_SIZE = 11;
 
 constexpr size_t sizeof_uint8_t = sizeof(uint8_t);
 constexpr size_t sizeof_uint16_t = sizeof(uint16_t);
@@ -140,10 +141,10 @@ void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
 
 std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
 	uint8_t version = 0;
-	if (e_bytearray.size() < 5 || std::memcmp(e_bytearray.data(),FILE_HEADER_ID,4) != 0) {
+	if (e_bytearray.size() < FILE_HEADER_ID_SIZE+1 || std::memcmp(e_bytearray.data(),FILE_HEADER_ID,FILE_HEADER_ID_SIZE) != 0) {
 		return {false, version};
 	} else {
-		std::memcpy(&version,e_bytearray.data()+4,sizeof(version));
+		std::memcpy(&version,e_bytearray.data()+FILE_HEADER_ID_SIZE,sizeof(version));
 		if (version < EARLIEST_SUPPORTED_FMT_VERSION || version > MAJOR_FMT_VERSION) {
 			return {false, version};
 		} else {
@@ -156,11 +157,16 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 	std::pair<bool, uint8_t> headerInfo = ensureValidHeaders(e_bytearray);
 	std::vector<EventPacket> eventList;
 	if (!headerInfo.first) {
-		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << std::endl;
-		throw std::runtime_error("nprisma: bad fileheader, found version " + std::to_string(headerInfo.second) );
+		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << " (must be <=" << int(EARLIEST_SUPPORTED_FMT_VERSION) << "& >=" << int(MAJOR_FMT_VERSION) << ")" << std::endl;
+		if (headerInfo.second == 0) {
+			throw std::runtime_error("Incompatible file format (not a .neop recording)");
+		} else {
+			throw std::runtime_error("Incompatible version, file is version " + std::to_string(headerInfo.second) + " (must be <=" + std::to_string(EARLIEST_SUPPORTED_FMT_VERSION) + " & >=" + std::to_string(MAJOR_FMT_VERSION) + ")" );
+		}
+
 		return {eventList,"Failed to parse event array: Bad file header or incompatible version."}; 
 	}
-	for (size_t cur = 5; cur < e_bytearray.size();) {
+	for (size_t cur = FILE_HEADER_ID_SIZE+1; cur < e_bytearray.size();) {
 		EventPacket e;
 		std::memcpy(&e.timestamp, e_bytearray.data()+cur, sizeof_uint64_t);
 		cur += sizeof_uint64_t;

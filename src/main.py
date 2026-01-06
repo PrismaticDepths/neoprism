@@ -85,7 +85,7 @@ class Main:
 				self.state_recording = True
 				self.recorder.start()
 		except Exception:
-			self.error_emitter.error.emit(traceback.format_exc(750))
+			self.error_emitter.error.emit(traceback.format_exc(250))
 
 	def toggle_playback(self):
 		try:
@@ -103,7 +103,10 @@ class Main:
 					while self.state_playback:
 						try:
 							playback.CompileAndPlay(self.arr)
-						except Exception as e: 
+						except RuntimeError as e: 
+							self.error_emitter.error.emit(str(e))
+							self.toggle_playback()
+						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
 							self.toggle_playback()
 				t = Thread(target=inner)
@@ -122,7 +125,7 @@ class Main:
 	def load(self):
 
 		try:
-			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load",filter="Recordings (*.nprsma);;All Files (*)")
+			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load",filter="Recordings (*.neop);;All Files (*)")
 			if file == "": return
 			else:
 				with open(file,"rb") as fstream:
@@ -133,7 +136,7 @@ class Main:
 	def save(self):
 
 		try:
-			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording",filter="Recordings (*.nprsma)")
+			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording",filter="Recordings (*.neop)")
 			if file == "": return
 			else:
 				with open(file,"wb") as fstream:
