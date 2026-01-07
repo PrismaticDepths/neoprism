@@ -106,9 +106,11 @@ class Main:
 						except RuntimeError as e: 
 							self.error_emitter.error.emit(str(e))
 							self.toggle_playback()
+							break
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
 							self.toggle_playback()
+							break
 				t = Thread(target=inner)
 				t.start()
 		except Exception:
