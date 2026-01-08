@@ -17,12 +17,14 @@ namespace py = pybind11;
 constexpr uint8_t MAJOR_FMT_VERSION = 1; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
 constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 1; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
 constexpr char FILE_HEADER_ID[11] = {'<','N','E','O','P','R','I','S','M','>'}; // DONT CHANGE THIS ONE
+cosntexpr uint8_t FILE_HEADER_ID_SIZE = 11;
 
 constexpr size_t sizeof_uint8_t = sizeof(uint8_t);
 constexpr size_t sizeof_uint16_t = sizeof(uint16_t);
 constexpr size_t sizeof_int16_t = sizeof(int16_t);
 constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
 
+std::atomic<bool> n_abort{false};
 
 void setDPIAwareness() {
 	SetProcessDPIAware();
@@ -64,8 +66,8 @@ void moveMouseAbsolute(uint16_t x, uint16_t y) {
 	ZeroMemory(&input, sizeof(INPUT));
 	input.type = INPUT_MOUSE;
 
-	input.mi.dx = (static_cast<long>(x*65535))/ (GetSystemMetrics(SM_CXSCREEN) - 1); // size of length of primary monitor
-	input.mi.dy = (static_cast<long>(y*65535))/ (GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
+	input.mi.dx = (static_cast<long>(x)*65535)/ (GetSystemMetrics(SM_CXSCREEN) - 1); // size of length of primary monitor
+	input.mi.dy = (static_cast<long>(y)*65535)/ (GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
 
 	input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
 
@@ -186,7 +188,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 
 		return {eventList,"Failed to parse event array: Bad file header or incompatible version."}; 
 	}
-	for (size_t cur = 5; cur < e_bytearray.size();) {
+	for (size_t cur = FILE_HEADER_ID_SIZE+1; cur < e_bytearray.size();) {
 		EventPacket e;
 		std::memcpy(&e.timestamp, e_bytearray.data()+cur, sizeof_uint64_t);
 		cur += sizeof_uint64_t;

@@ -259,7 +259,7 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 		uint64_t deltaNs = e.timestamp - lastTimestamp;
 		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
 		lastTimestamp = e.timestamp;
-		std::this_thread::sleep_for(std::chrono::nanoseconds(deltaNs)-std::chrono::nanoseconds(200));
+		if (deltaNs > 200) { std::this_thread::sleep_for(std::chrono::nanoseconds(deltaNs)-std::chrono::nanoseconds(200)); }
 		std::function<void()> func;
 		switch (e.event) {
 			case Events::KEY_DOWN:
