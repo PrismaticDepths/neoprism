@@ -16,7 +16,7 @@ class Main:
 
 	def __init__(self):
 		self.recorder = recorder.OneShotRecorder()
-		self.arr = bytearray()
+		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
 		self.state_playback = False
@@ -103,18 +103,29 @@ class Main:
 				def inner():
 					try:
 						self.compiled_arr = playback.CompileEventArray(self.arr)[0]
+						if len(self.compiled_arr) == 0: 
+							self.tray.setIcon(self.icon_static)
+							playback.abortPlayback()
+							self.state_playback = False
+							return
 					except RuntimeError as e:
 						self.error_emitter.error.emit(str(e))
-						self.toggle_playback()
+						self.tray.setIcon(self.icon_static)
+						playback.abortPlayback()
+						self.state_playback = False
 					except Exception as e:
 						self.error_emitter.error.emit(traceback.format_exc())
-						self.toggle_playback()
+						self.tray.setIcon(self.icon_static)
+						playback.abortPlayback()
+						self.state_playback = False
 					while self.state_playback:
 						try:
 							playback.PlayEventList(self.compiled_arr)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
-							self.toggle_playback()
+							self.tray.setIcon(self.icon_static)
+							playback.abortPlayback()
+							self.state_playback = False
 							break
 				t = Thread(target=inner)
 				t.start()

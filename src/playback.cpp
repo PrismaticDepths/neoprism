@@ -258,6 +258,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 
 void PlayEventList(const std::vector<EventPacket>& eventList) {
 	py::gil_scoped_release release;
+	 if (eventList.empty()) return;
 
 	if (n_abort.load(std::memory_order_relaxed)) { return; }
 	auto start = std::chrono::steady_clock::now();
