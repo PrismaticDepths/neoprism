@@ -74,7 +74,7 @@ class Main:
 	def toggle_recording(self):
 		try:
 			if self.state_playback or self.state_autoclicker: return
-			print('rec:', not self.state_recording)
+			# print('rec:', not self.state_recording)
 			if self.state_recording: self.recorder.stop()
 			self.arr = copy.deepcopy(self.recorder.buffer)
 			self.recorder = recorder.OneShotRecorder()
@@ -91,7 +91,7 @@ class Main:
 	def toggle_playback(self):
 		try:
 			if self.state_recording or self.state_autoclicker: return
-			print('play:', not self.state_playback)
+			# print('play:', not self.state_playback)
 			if self.state_playback:
 				self.tray.setIcon(self.icon_static)
 				playback.abortPlayback()
@@ -125,7 +125,7 @@ class Main:
 
 		try:
 			if self.state_recording or self.state_playback: return
-			print('auto:', not self.state_autoclicker)
+			# print('auto:', not self.state_autoclicker)
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
