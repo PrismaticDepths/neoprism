@@ -168,6 +168,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 	}
 	for (size_t cur = FILE_HEADER_ID_SIZE+1; cur < e_bytearray.size();) {
 		EventPacket e;
+		if (cur + sizeof_uint64_t + sizeof_uint8_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array (broken EventPacket header @ "+std::to_string(cur)+")"); }
 		std::memcpy(&e.timestamp, e_bytearray.data()+cur, sizeof_uint64_t);
 		cur += sizeof_uint64_t;
 		std::memcpy(&e.event, e_bytearray.data()+cur, sizeof_uint8_t);
@@ -178,6 +179,8 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 		switch (e.event) {
 			case Events::KEY_DOWN:
 			case Events::KEY_UP:
+				if (cur + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+
 				uint16_t vk;
 				std::memcpy(&vk, e_bytearray.data()+cur, sizeof_uint16_t);
 				cur += sizeof_uint16_t;
@@ -186,7 +189,8 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 
 			case Events::MOUSE_DOWN:
 			case Events::MOUSE_UP:
-
+				if (cur + sizeof_uint8_t + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+				
 				std::memcpy(&button, e_bytearray.data()+cur, sizeof_uint8_t);
 				cur += sizeof_uint8_t;
 				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
@@ -199,6 +203,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				break;
 
 			case Events::MOUSE_MOVE_ABSOLUTE:
+				if (cur + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
 
 				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
 				cur += sizeof_uint16_t;
@@ -212,6 +217,8 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				break; // TO BE IMPLEMENTED LATER
 
 			case Events::MOUSE_SCROLL:
+				if (cur + sizeof_uint16_t + sizeof_uint16_t + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+
 				int16_t dx;
 				int16_t dy;
 				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
@@ -229,6 +236,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				break;
 
 			case Events::MOUSE_DRAG:
+				if (cur + sizeof_uint8_t + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
 
 				std::memcpy(&button, e_bytearray.data()+cur, sizeof_uint8_t);
 				cur += sizeof_uint8_t;
@@ -250,6 +258,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 }
 
 void PlayEventList(std::vector<EventPacket> eventList) {
+	py::gil_scoped_release release;
 
 	if (n_abort.load(std::memory_order_relaxed)) { return; }
 	auto start = std::chrono::high_resolution_clock::now();
@@ -293,7 +302,7 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 }
 
 void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
-	py::gil_scoped_release release;
+	
 
 	auto l = CompileEventArray(e_bytearray);
 	PlayEventList(l.first);
@@ -306,5 +315,9 @@ PYBIND11_MODULE(playback, m) {
 	m.def("abortPlayback", &abortPlayback, "Sets flag n_abort to True, causing a running recording to stop after the current event finishes.");
 	m.def("resetAbortPlayback", &resetAbortPlayback, "Sets flag n_abort to False. Allows you to play recordings again.");
 	m.def("getAbortStatus", &getAbortStatus, "Returns the value of flag n_abort");
-	
+	py::class_<EventPacket>(m, "EventPacket")
+        .def(py::init<>()) // Expose the default constructor to allow creation in Python
+        .def_readwrite("timestamp", &EventPacket::timestamp)
+        .def_readwrite("event", &EventPacket::event)
+        .def_readwrite("payload", &EventPacket::payload);
 }

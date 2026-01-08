@@ -17,6 +17,7 @@ class Main:
 	def __init__(self):
 		self.recorder = recorder.OneShotRecorder()
 		self.arr = bytearray()
+		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
 		self.state_playback = False
 		self.state_autoclicker = False
@@ -100,13 +101,17 @@ class Main:
 				self.state_playback = True
 				playback.resetAbortPlayback()
 				def inner():
+					try:
+						self.compiled_arr = playback.CompileEventArray(self.arr)[0]
+					except RuntimeError as e:
+						self.error_emitter.error.emit(str(e))
+						self.toggle_playback()
+					except Exception as e:
+						self.error_emitter.error.emit(traceback.format_exc())
+						self.toggle_playback()
 					while self.state_playback:
 						try:
-							playback.CompileAndPlay(self.arr)
-						except RuntimeError as e: 
-							self.error_emitter.error.emit(str(e))
-							self.toggle_playback()
-							break
+							playback.PlayEventList(self.compiled_arr)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
 							self.toggle_playback()
