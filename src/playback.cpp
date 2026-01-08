@@ -269,7 +269,7 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 			auto now = std::chrono::high_resolution_clock::now();
 			if (now >= insertTime) { break; }
 			auto remaining = insertTime - now;
-			if (remaining < std::chrono::nanoseconds(200)) {
+			if (remaining > std::chrono::nanoseconds(200)) {
 				std::this_thread::sleep_for(remaining-std::chrono::nanoseconds(200));
 			} else {
 				std::this_thread::yield();
