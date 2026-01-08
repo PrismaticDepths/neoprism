@@ -157,7 +157,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 	if (!headerInfo.first) {
 		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << " (must be <=" << int(EARLIEST_SUPPORTED_FMT_VERSION) << "& >=" << int(MAJOR_FMT_VERSION) << ")" << std::endl;
 		if (headerInfo.second == 0) {
-			throw std::runtime_error("Incompatible file format (not a .neop recording)");
+			throw std::runtime_error("Incompatible file format (11byte header does not match; not a .neop recording)");
 		} else {
 			throw std::runtime_error("Incompatible version, file is version " + std::to_string(headerInfo.second) + " (must be >=" + std::to_string(EARLIEST_SUPPORTED_FMT_VERSION) + "&& <=" + std::to_string(MAJOR_FMT_VERSION) + ")" );
 		}
