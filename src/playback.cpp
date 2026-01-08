@@ -82,8 +82,6 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	CGEventType statusEvent;
 	CGMouseButton mouseButton;
 
-	std::cout << button << std::endl;
-
 	switch (button) {
 		case 1:
 			if (status) {
@@ -161,7 +159,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 		if (headerInfo.second == 0) {
 			throw std::runtime_error("Incompatible file format (not a .neop recording)");
 		} else {
-			throw std::runtime_error("Incompatible version, file is version " + std::to_string(headerInfo.second) + " (must be <=" + std::to_string(EARLIEST_SUPPORTED_FMT_VERSION) + " & >=" + std::to_string(MAJOR_FMT_VERSION) + ")" );
+			throw std::runtime_error("Incompatible version, file is version " + std::to_string(headerInfo.second) + " (must be >=" + std::to_string(EARLIEST_SUPPORTED_FMT_VERSION) + "&& <=" + std::to_string(MAJOR_FMT_VERSION) + ")" );
 		}
 
 		return {eventList,"Failed to parse event array: Bad file header or incompatible version."}; 
@@ -250,6 +248,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				break;
 
 			default:
+				throw std::runtime_error("Unknown event type encountered: "+std::to_string(e.event)+" (found @ index "+std::to_string(cur)+")");
 				break;
 		}
 		eventList.push_back(e);
@@ -269,33 +268,32 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
 		lastTimestamp = e.timestamp;
 		if (deltaNs > 200) { std::this_thread::sleep_for(std::chrono::nanoseconds(deltaNs)-std::chrono::nanoseconds(200)); }
-		std::function<void()> func;
-		switch (e.event) {
-			case Events::KEY_DOWN:
-				func = [e]() -> void { keyStatus(e.payload.front(),true); };
-				break;
-			case Events::KEY_UP:
-				func = [e]() -> void { keyStatus(e.payload.front(),false); };
-				break;
-			case Events::MOUSE_MOVE_ABSOLUTE:
-				func = [e]() -> void { moveMouseAbsolute(e.payload.at(0),e.payload.at(1)); };
-				break;
-			case Events::MOUSE_DOWN:
-				func = [e]() -> void { mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),true); };
-				break;
-			case Events::MOUSE_UP:
-				func = [e]() -> void { mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),false); };
-				break;
-			case Events::MOUSE_SCROLL:
-				func = [e]() -> void { mouseScroll(e.payload.at(0),e.payload.at(1),e.payload.at(2),e.payload.at(3)); };
-				break;
-			case Events::MOUSE_DRAG:
-				func = [e]() -> void { mouseDragAbsolute(e.payload.at(0),e.payload.at(1),e.payload.at(2)); };
-		}
 		while (std::chrono::high_resolution_clock::now() < insertTime) {
 			if (n_abort.load(std::memory_order_relaxed)) { return; }
 		}
-		func();
+		switch (e.event) {
+			case Events::KEY_DOWN:
+				keyStatus(e.payload.front(),true);
+				break;
+			case Events::KEY_UP:
+				keyStatus(e.payload.front(),false);
+				break;
+			case Events::MOUSE_MOVE_ABSOLUTE:
+				moveMouseAbsolute(e.payload.at(0),e.payload.at(1));
+				break;
+			case Events::MOUSE_DOWN:
+				mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),true);
+				break;
+			case Events::MOUSE_UP:
+				mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),false);
+				break;
+			case Events::MOUSE_SCROLL:
+				mouseScroll(e.payload.at(0),e.payload.at(1),e.payload.at(2),e.payload.at(3));
+				break;
+			case Events::MOUSE_DRAG:
+				mouseDragAbsolute(e.payload.at(0),e.payload.at(1),e.payload.at(2));
+				break;
+		}
 
 	}
 	
