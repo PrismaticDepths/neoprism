@@ -9,26 +9,41 @@ It is the successor to Prism's Autoclicker 4.0.
 | Tasks | <ul><li>- [x] Full support, including mouse drag events. </li></ul> | <ul><li>- [x] Supports saving/loading to files, recording, and playback. </li></ul> |
 | Interface | <ul><li>- [x] Minimal system tray UI. </li></ul> | <ul><li>- [x] Very simple GUI using TkInter. </li></ul> |
 
-## Building
+## Installation
 
-neoprisma must be built manually. You should be able to do this with fairly little trouble:
-- Clone the repository. 
-- `cd` to the `neoprisma` folder you just cloned
-- Create a Python virtual environment and enter it.
-- Install `pybind11`, `PyQt6`, and `pynput` using pip.
-- cd to `neoprisma/src` and compile playback.cpp using this command: `c++ -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix) -framework ApplicationServices`
+Unlike prism's autoclicker, prebuilt binaries are not provided.\
+However, neoprisma is still extremely easy to install, if not easier than prism's autoclicker.
 
-Once finished with those steps, run `python3 main.py` while in the venv and src directory. After granting accessibility & input monitoring permissions to your terminal, neoprisma should be running.
 
-(sorry for making this overly complicated i swear ill make an install script and proper app)
+> Please note that you will still need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
+> - Official downloads for Python: https://www.python.org/downloads/
+> - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
+
+You may inspect `install.sh` in this repository to make sure the code you are about to run is trustworthy.\
+If you are satisfied, execute the following in your terminal:
+```bash
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.sh | bash
+```
+This will:
+1. Ensure all dependencies are installed before running
+2. Ask to erase the target build directory (if it exists)
+3. Clone this git repository into the build directory
+4. Create a virtual environment and install dependencies from `requirements.txt`
+5. Install `pyinstaller`
+6. Compile the C++ portions of the app into `.so` binaries
+7. Build the program as a `.app` bundle.
+8. Move the app into the target installation directory
+9. Sign the app's code
+10. Ask to erase the build directory since it is not needed anymore
+
 
 ## Hotkeys
 
 All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if you have configured the function keys to need fn to do their special action)
 
-`<f7>` - toggle recording
-`<f8>` - toggle autoclicker
-`<f9>` - toggle playback
+`<f7>` - toggle recording\
+`<f8>` - toggle autoclicker\
+`<f9>` - toggle playback\
 
 ## Known Issues
 
