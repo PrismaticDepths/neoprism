@@ -29,6 +29,9 @@ class DummyRecorder:
 class Emitter(QObject):
 	error = pyqtSignal(str)
 
+class sig(QObject):
+	s = pyqtSignal()
+
 class Main:
 
 	def __init__(self):
@@ -44,6 +47,13 @@ class Main:
 		
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
+
+		self.signal_toggle_recording = sig()
+		self.signal_toggle_playback = sig()
+		self.signal_toggle_autoclicker = sig()
+		self.signal_toggle_recording.s.connect(self.toggle_recording)
+		self.signal_toggle_playback.s.connect(self.toggle_playback)
+		self.signal_toggle_autoclicker.s.connect(self.toggle_autoclicker)
 
 		self.app.setQuitOnLastWindowClosed(False)
 
@@ -82,36 +92,50 @@ class Main:
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
-		def alc_r():
-			self.recorder=recorder.OneShotRecorder()
-			self.m_simulator = pynput.mouse.Controller()
+
 
 		QTimer.singleShot(0,self.start_hotkeys)
-		QTimer.singleShot(0,alc_r)
+		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
+
+	def init_recorder_and_simulator(self):
+			try:
+				self.recorder=recorder.OneShotRecorder()
+				self.m_simulator = pynput.mouse.Controller()
+			except Exception:
+				self.error_emitter.error.emit("Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller: "+traceback.format_exc())
 
 	def start_hotkeys(self):
 		try:
 			self.h = pynput.keyboard.GlobalHotKeys({
-			'<ctrl>+<f7>': self.toggle_recording,
-			'<ctrl>+<f9>': self.toggle_playback,
-			'<ctrl>+<f8>': self.toggle_autoclicker},
+			'<ctrl>+<f7>': self._toggle_recording,
+			'<ctrl>+<f9>': self._toggle_playback,
+			'<ctrl>+<f8>': self._toggle_autoclicker},
 			on_error=self.error_emitter.error.emit)
 			self.h.start()
 		except Exception:
-			self.error_emitter.error.emit("Neoprisma is missing 'Input Monitoring' permissions and could not start the hotkey listener. Without this permission, any attempt to record input will cause an immediate crash. Please grant this permission in System Settings -> Privacy & Security -> Input Monitoring.")
-	def init_recorder(self):
-		self.recorder = recorder.OneShotRecorder()
+			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
+
+	def _toggle_recording(self):
+		self.signal_toggle_recording.s.emit()
+		#QTimer.singleShot(0,self.toggle_recording)
+	def _toggle_playback(self):
+		self.signal_toggle_playback.s.emit()
+		#QTimer.singleShot(0,self.toggle_playback)
+	def _toggle_autoclicker(self):
+		self.signal_toggle_autoclicker.s.emit()
+		#QTimer.singleShot(0,self.toggle_autoclicker)
 	def toggle_recording(self):
+		print("received: toggle recording")
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			# print('rec:', not self.state_recording)
 			if self.state_recording: 
-				QTimer.singleShot(0,self.recorder.stop)
+				self.recorder.stop()
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
 
-			QTimer.singleShot(0, self.init_recorder)
+			self.recorder = recorder.OneShotRecorder()
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
@@ -121,7 +145,7 @@ class Main:
 				self.state_recording = True
 				QTimer.singleShot(0,self.recorder.start)
 		except Exception:
-			self.error_emitter.error.emit(traceback.format_exc(250))
+			self.error_emitter.error.emit(traceback.format_exc())
 
 	def toggle_playback(self):
 		try:
