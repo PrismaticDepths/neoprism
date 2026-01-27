@@ -23,7 +23,8 @@ from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMe
 from resources import resource_path
 
 
-
+class DummyRecorder:
+	buffer = bytearray(b"<NEOPRISMA>\x01")
 
 class Emitter(QObject):
 	error = pyqtSignal(str)
@@ -40,7 +41,7 @@ class Main:
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
-		self.recorder = recorder.OneShotRecorder()
+		self.recorder = DummyRecorder
 		self.m_simulator = pynput.mouse.Controller()
 		
 		self.error_emitter = Emitter()
@@ -86,7 +87,7 @@ class Main:
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		self.app.exec()
-		
+
 	def start_hotkeys(self):
 		try:
 			self.h = pynput.keyboard.GlobalHotKeys({
@@ -99,7 +100,6 @@ class Main:
 			self.error_emitter.error.emit("Neoprisma is missing 'Input Monitoring' permissions and could not start the hotkey listener. Without this permission, any attempt to record input will cause an immediate crash. Please grant this permission in System Settings -> Privacy & Security -> Input Monitoring.")
 
 	def toggle_recording(self):
-		self.error_emitter.error.emit("REC")
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			# print('rec:', not self.state_recording)
@@ -108,6 +108,7 @@ class Main:
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
 			self.recorder = recorder.OneShotRecorder()
+			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
 				self.state_recording = False
@@ -119,7 +120,6 @@ class Main:
 			self.error_emitter.error.emit(traceback.format_exc(250))
 
 	def toggle_playback(self):
-		self.error_emitter.error.emit("PLAYBACK")
 		try:
 			if self.state_recording or self.state_autoclicker: return
 			# print('play:', not self.state_playback)
