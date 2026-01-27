@@ -23,9 +23,10 @@ class Main:
 		self.state_recording = False
 		self.state_playback = False
 		self.state_autoclicker = False
+		self.timestamp_multiplier = 1
 		
 		self.error_emitter = Emitter()
-		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
+		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
 
 		self.app = QApplication(sys.argv)
 		self.app.setQuitOnLastWindowClosed(False)
@@ -125,7 +126,7 @@ class Main:
 						self.state_playback = False
 					while self.state_playback:
 						try:
-							playback.PlayEventList(self.compiled_arr)
+							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
 							self.tray.setIcon(self.icon_static)

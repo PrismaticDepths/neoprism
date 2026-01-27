@@ -256,7 +256,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 	return {eventList,""};
 }
 
-void PlayEventList(const std::vector<EventPacket>& eventList) {
+void PlayEventList(const std::vector<EventPacket>& eventList, double speed) {
 	py::gil_scoped_release release;
 	 if (eventList.empty()) return;
 
@@ -264,7 +264,8 @@ void PlayEventList(const std::vector<EventPacket>& eventList) {
 	auto start = std::chrono::steady_clock::now();
 	for (const EventPacket& e : eventList) {
 		if (n_abort.load(std::memory_order_relaxed)) { return; }
-		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
+		std::chrono::nanoseconds stamp_ns(e.timestamp);
+		auto insertTime = start + std::chrono::duration_cast<std::chrono::nanoseconds>(stamp_ns * speed);
 		while (true) {
 			if (n_abort.load(std::memory_order_relaxed)) { return; }
 			auto now = std::chrono::steady_clock::now();
@@ -308,7 +309,7 @@ void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
 	
 
 	auto l = CompileEventArray(e_bytearray);
-	PlayEventList(l.first);
+	PlayEventList(l.first,1);
 }
 
 PYBIND11_MODULE(playback, m) {
