@@ -18,7 +18,7 @@ import time
 import sys
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer
 from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMessageBox, QWidget
 from resources import resource_path
 
@@ -47,12 +47,13 @@ class Main:
 		self.app = QApplication(sys.argv)
 		self.app.setQuitOnLastWindowClosed(False)
 
-		from Quartz import AXIsProcessTrustedWithOptions
-		if AXIsProcessTrustedWithOptions({"AXTrustedCheckOptionPrompt": True}):
-			pass
-		else:
-			self.error_emitter.error.emit("Neoprisma requires accessibility & input monitoring permissions to operate. Please grant them in the Privacy & Security section of System Settings.")
-			return
+		def check_perms():
+			from Quartz import AXIsProcessTrustedWithOptions
+			if AXIsProcessTrustedWithOptions({"AXTrustedCheckOptionPrompt": True}):
+				pass
+			else:
+				self.error_emitter.error.emit("Neoprisma requires accessibility & input monitoring permissions to operate. Please grant them in the Privacy & Security section of System Settings.")
+				return
 
 
 		self.recorder = recorder.OneShotRecorder()
@@ -102,6 +103,7 @@ class Main:
 		on_error=self.error_emitter.error.emit)
 
 		h.start()
+		QTimer.singleShot(0.5,check_perms)
 		self.app.exec()
 
 	def toggle_recording(self):
