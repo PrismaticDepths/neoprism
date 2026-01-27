@@ -31,8 +31,7 @@ class Main:
 	def __init__(self):
 		playback.mouseButtonStatus(1,0,0,False) # Should prompt accessibility perms
 
-		self.recorder = recorder.OneShotRecorder()
-		self.m_simulator = pynput.mouse.Controller()
+		
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
@@ -45,6 +44,9 @@ class Main:
 
 		self.app = QApplication(sys.argv)
 		self.app.setQuitOnLastWindowClosed(False)
+
+		self.recorder = recorder.OneShotRecorder()
+		self.m_simulator = pynput.mouse.Controller()
 
 		self.icon_static = QIcon(resource_path("assets/icon.png"))
 		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
@@ -80,6 +82,8 @@ class Main:
 
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
+
+		
 
 		h = pynput.keyboard.GlobalHotKeys({
 		'<ctrl>+<f7>': self.toggle_recording,
