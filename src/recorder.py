@@ -97,13 +97,16 @@ class OneShotRecorder:
 		self.log_event(t,Events.MOUSE_SCROLL,int(x),int(y),int(dx),int(dy))
 
 	def start(self):
-		self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
-		self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
+		try:
+			self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
+			self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
 
-		assert self.starting_time == 0
-		self.starting_time = time.perf_counter_ns()
-		self.kb_listener.start()
-		self.mouse_listener.start()
+			assert self.starting_time == 0
+			self.starting_time = time.perf_counter_ns()
+			self.kb_listener.start()
+			self.mouse_listener.start()
+		except Exception:
+			raise RuntimeError("Failed to initialize & start keyboard/mouse listeners.")
 
 	def stop(self):
 		self.kb_listener.stop()
