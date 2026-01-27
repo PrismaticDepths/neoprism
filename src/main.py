@@ -29,6 +29,8 @@ class Emitter(QObject):
 class Main:
 
 	def __init__(self):
+		playback.mouseButtonStatus(1,0,0,False) # Should prompt accessibility perms
+
 		self.recorder = recorder.OneShotRecorder()
 		self.m_simulator = pynput.mouse.Controller()
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
