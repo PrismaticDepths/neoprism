@@ -3,7 +3,7 @@
 set -euo pipefail
 
 while true; do
-	read -r -p "This program will install Neoprisma. Proceed with installation? [y/n]" yn
+	read -r -p "This program will install Neoprisma. Proceed with installation? [y/n]" yn < /dev/tty
 	case $yn in
 		[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
 		[Nn]* ) echo "Exiting..."; exit;;      # Exit the script
@@ -53,7 +53,7 @@ if [ -d "$BUILD_DIR" ]; then
 
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
-			read -r -p "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n]" yn
+			read -r -p "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n]" yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
 				[Nn]* ) echo "Stopping installer..."; exit;;      # Exit the script
@@ -99,7 +99,7 @@ if [ -d "$BUILD_DIR" ]; then
 
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
-			read -r -p "Clean up BUILD_DIR ($BUILD_DIR)? [y/n]" yn
+			read -r -p "Clean up BUILD_DIR ($BUILD_DIR)? [y/n]" yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Cleaning..."; break;; # Break the loop and continue script
 				[Nn]* ) echo "Exiting..."; exit;;      # Exit the script
