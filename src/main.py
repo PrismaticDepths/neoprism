@@ -31,35 +31,22 @@ class Emitter(QObject):
 class Main:
 
 	def __init__(self):
-		playback.mouseButtonStatus(1,0,0,False) # Should prompt accessibility perms
 
-		
+		self.app = QApplication(sys.argv)
+
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
+		self.recorder = recorder.OneShotRecorder()
+		self.m_simulator = pynput.mouse.Controller()
 		
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
 
-		self.app = QApplication(sys.argv)
 		self.app.setQuitOnLastWindowClosed(False)
-
-		def check_perms():
-			from Quartz import AXIsProcessTrustedWithOptions
-			if AXIsProcessTrustedWithOptions({"AXTrustedCheckOptionPrompt": True}):
-				return True
-			else:
-				self.error_emitter.error.emit("Neoprisma requires accessibility & input monitoring permissions to operate. Please grant them in the Privacy & Security section of System Settings.")
-				return False
-
-		canrun = False
-		if check_perms():
-			canrun = True
-			self.recorder = recorder.OneShotRecorder()
-			self.m_simulator = pynput.mouse.Controller()
 
 		self.icon_static = QIcon(resource_path("assets/icon.png"))
 		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
@@ -96,16 +83,20 @@ class Main:
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
-		
-		h = pynput.keyboard.GlobalHotKeys({
-		'<ctrl>+<f7>': self.toggle_recording,
-		'<ctrl>+<f9>': self.toggle_playback,
-		'<ctrl>+<f8>': self.toggle_autoclicker},
-		on_error=self.error_emitter.error.emit)
-		if canrun:
-			h.start()
-		QTimer.singleShot(0.5,check_perms)
+
+		QTimer.singleShot(0,self.start_hotkeys)
 		self.app.exec()
+		
+	def start_hotkeys(self):
+		try:
+			self.h = pynput.keyboard.GlobalHotKeys({
+			'<ctrl>+<f7>': self.toggle_recording,
+			'<ctrl>+<f9>': self.toggle_playback,
+			'<ctrl>+<f8>': self.toggle_autoclicker},
+			on_error=self.error_emitter.error.emit)
+			self.h.start()
+		except Exception:
+			self.error_emitter.error.emit("Neoprisma is missing 'Input Monitoring' permissions and could not start the hotkey listener. Without this permission, any attempt to record input will cause an immediate crash. Please grant this permission in System Settings -> Privacy & Security -> Input Monitoring.")
 
 	def toggle_recording(self):
 		self.error_emitter.error.emit("REC")
