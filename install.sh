@@ -70,6 +70,23 @@ if [ -d "$BUILD_DIR" ]; then
 	fi
 fi
 
+if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
+	echo "Removing previously installed dist..."
+	if [[ -n "$INSTALL_DIR/$APP_NAME.app" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "$HOME" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "/" ]]; then
+		while true; do
+			read -r -u 3 -p "The given INSTALL_DIR/APP_NAME.app ($INSTALL_DIR/$APP_NAME.app) exists. Delete it and proceed with install? [y/n] " yn < /dev/tty
+			case $yn in
+				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
+				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
+				* ) echo "Please answer yes or no.";; # Loop back for invalid input
+			esac
+		done
+		rm -rf "$INSTALL_DIR/$APP_NAME.app"
+	else
+		die "INSTALL_DIR/APP_NAME.app is empty or home. Installing to those locations is unsafe."
+	fi
+fi
+
 echo "Cloning repo into build dir..."
 
 git clone https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
