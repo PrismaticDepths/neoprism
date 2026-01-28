@@ -166,7 +166,7 @@ echo "Signing app..."
 codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
 echo "Installed dist at $INSTALL_DIR/$APP_NAME.app"
-echo "Cleaning BUILD_DIR ($BUILD_DIR)"4
+echo "Cleaning BUILD_DIR ($BUILD_DIR)"
 if [ -d "$BUILD_DIR" ]; then
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		rm -rf "$BUILD_DIR"
